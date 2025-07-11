@@ -22,7 +22,7 @@ import logging
 class async_obj():
     __async_obj_sub_obj__:any = None
     __async_obj_worker_thread__:threading.Thread = None
-    __async_obj_target_func__:callable = None
+    __async_obj_target_callable__:callable = None
     __async_obj_response__:any = None
     __async_obj_thread_id__:int = None
     __async_obj_thread_result_queue__:Queue = None
@@ -83,7 +83,7 @@ class async_obj():
         Exception
             Any error when calling the function of the original object.
         """
-        if self.async_obj_is_done():
+        if self.async_obj_is_done() and not self.__async_obj_thread_result_queue__.empty():
             while not self.__async_obj_thread_result_queue__.empty():
                     native_id, result, err = self.__async_obj_thread_result_queue__.get()
                     if native_id == self.__async_obj_thread_id__:
@@ -93,7 +93,7 @@ class async_obj():
                             raise err
                         else:
                             return result
-            logging.warning("The function {func} seems to be finished but the result is not registered. Returning None.".format(func=str(self.__async_obj_target_func__)))
+            logging.warning("The function {func} seems to be finished but the result is not registered. Returning None.".format(func=str(self.__async_obj_target_callable__)))
             return None
         else:
             return None
@@ -123,14 +123,14 @@ class async_obj():
         
     def __async_obj_thread_func__(self,*args,**kwargs):
         try:
-            result = self.__async_obj_target_func__(*args,**kwargs)
+            result = self.__async_obj_target_callable__(*args,**kwargs)
             self.__async_obj_thread_result_queue__.put((threading.get_native_id(),result,None))
         except Exception as e:
             self.__async_obj_thread_result_queue__.put((threading.get_native_id(),None,e))
 
     def __async_obj_make_async__(self,*args,**kwargs):
         if not self.async_obj_is_done():
-            logging.warning("Old thread is being dismissed while creating a new one for the function: {func}".format(func=str(self.__async_obj_target_func__)))
+            logging.warning("Old thread is being dismissed while creating a new one for the function: {func}".format(func=str(self.__async_obj_target_callable__)))
         while not self.__async_obj_thread_result_queue__.empty(): #keep the queue clean
             self.__async_obj_thread_result_queue__.get()
         self.__async_obj_worker_thread__ = threading.Thread(target=self.__async_obj_thread_func__, args = args, kwargs=kwargs, daemon=False)
@@ -143,9 +143,16 @@ class async_obj():
             if hasattr(self.__async_obj_sub_obj__, attr): #otherwise mimic the original object
                 dummy = getattr(self.__async_obj_sub_obj__, attr)
                 if callable(dummy):
-                    self.__async_obj_target_func__ = dummy
+                    self.__async_obj_target_callable__ = dummy
                     return self.__async_obj_make_async__
                 else:
                     return dummy
         else:
             return super().__getattr__(attr)
+        
+    def __call__(self, *args, **kwargs):
+        if callable(self.__async_obj_sub_obj__):
+            self.__async_obj_target_callable__ = self.__async_obj_sub_obj__
+            return self.__async_obj_make_async__(*args, **kwargs)
+        else:
+            return None
