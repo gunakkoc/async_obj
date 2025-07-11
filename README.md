@@ -4,7 +4,7 @@
 
 A minimalist and lightweight Python wrapper to make any function -standalone or within an object- asynchronous.
 
-If you are also tired of adding a whole bunch of code for every single case of simple threading, this small wrapper is my remedy.
+If you are also tired of adding a whole bunch of code for every single case of simple threading, this small wrapper is my remedy. Requires >=Python 3.8.
 
 `async obj` enables:
 - Simply running a function in a dedicated thread.
@@ -13,7 +13,7 @@ If you are also tired of adding a whole bunch of code for every single case of s
 - In case of an exception, raising the exception on demand (whenever the result is requested).
 
 Advantages:
-- No compatibility concerns (e.g., `asyncio`), only depends on a few standard Python libraries (only requires >=Python 3.8).
+- No compatibility concerns (e.g., `asyncio`), only depends on a few standard Python libraries.
 - Simple to use with basically 2 lines of code without any decorators.
 - Mimics an object or a function and does not create a copy, hence minimum impact on memory and performance.
 
