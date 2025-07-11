@@ -126,7 +126,7 @@ while True:
         break
 ```
 
-## To Be Developed
+## To Do
 1. Providing same concurrency functionalities for `getter`, `setter` and similar extension.
 2. Better support to autocompletion for IDE convenience.
 
