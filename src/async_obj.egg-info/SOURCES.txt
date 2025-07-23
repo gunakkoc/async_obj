@@ -1,6 +1,8 @@
 LICENSE
 README.md
 pyproject.toml
+src/async_obj/__init__.py
+src/async_obj/async_obj.py
 src/async_obj.egg-info/PKG-INFO
 src/async_obj.egg-info/SOURCES.txt
 src/async_obj.egg-info/dependency_links.txt

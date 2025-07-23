@@ -14,8 +14,10 @@
 
 # https://github.com/gunakkoc/async_obj
 
-from .async_obj import async_obj
-__all__ = ['async_obj']
+from .async_obj import *
 
-__version__ = "1.0.0"
-__author__ = 'Gun Deniz Akkoc'
+__version__ = "1.0.2"
+__author__ = "Gun Deniz Akkoc"
+
+
+
