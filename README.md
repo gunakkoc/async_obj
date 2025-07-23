@@ -8,125 +8,106 @@ If you are also tired of adding a whole bunch of code for every single case of s
 
 `async obj` enables:
 - Simply running a function in a dedicated thread.
-- Ability to check whether its completed (or wait for completion) at any point.
+- Check for completion of the function.
+- Block until the function finishes.
 - Receiving the returned result.
 - In case of an exception, raising the exception on demand (whenever the result is requested).
 
 Advantages:
 - No compatibility concerns (e.g., `asyncio`), only depends on a few standard Python libraries.
-- Simple to use with basically 2 lines of code without any decorators.
+- Essentially a 2 liner, no decorators or keywords.
 - Mimics an object or a function and does not create a copy, hence minimum impact on memory and performance.
 
-## Minimal Example
-```python
-from time import sleep
-from async_obj import async_obj
+## Installation
+Easiest way is to use `pip`, only requirement is Python >=3.8.
 
-class my_obj(): #a dummy class for demo
-    def __init__(self):
-        pass
-    def some_func(self, val):
-        sleep(3) # Simulate some long function
-        return val*val
-
-x = my_obj()
-async_x = async_obj(x) #create a virtual async version of the object x
-
-async_x.some_func(2) # Run the original function but through the async_obj
-done = async_x.async_obj_is_done() # Check if the function is done
-result = async_x.async_obj_get_result() # Get the result or raise any encountered error, if the function is done
-# OR
-async_x.some_func(3) # Run the original function but through the async_obj
-result = async_x.async_obj_wait() # Block until the function finishes and get the result or raise any encountered error
-
-# Same functionalities are also available when wrapping a function directly
-async_sleep = async_obj(sleep) #create an async version of the sleep function
-async_sleep(3)
+```bash
+pip install async_obj
 ```
 
-## Simple Demos
+## Examples
+
+- Run a function asynchronous and check for completion. Then collect the result.
+```python
+from async_obj import async_obj
+from time import sleep
+
+def dummy_func(x:int):
+    sleep(3)
+    return x * x
+
+#define the async version of the dummy function
+async_dummy = async_obj(dummy_func)
+
+print("Starting async function...")
+async_dummy(2)  # Run dummy_func asynchronously
+print("Started.")
+
+while True:
+    print("Checking whether the async function is done...")
+    if async_dummy.async_obj_is_done():
+        print("Async function is done!")
+        print("Result: ", async_dummy.async_obj_get_result(), " Expected Result: 4")
+        break
+    else:
+        print("Async function is still running...")
+        sleep(1)
+```
+
+---
+- Alternatively, block until the function is completed, also retrieve any results.
 
 ```python
-from time import sleep
-from async_obj import async_obj
+print("Starting async function...")
+async_dummy(4)  # Run dummy_func asynchronously
+print("Started.")
+print("Blocking until the function finishes...")
+result = async_dummy.async_obj_wait()
+print("Function finished.")
+print("Result: ", result, " Expected Result: 16")
+```
 
-class my_obj():
-    def __init__(self):
-        pass
-    def some_func(self, val):
-        sleep(3) # Simulate some long function
-        return val*val
+---
+- Raise propagated exceptions, whenever the result is requested either with `async_obj_get_result()` or with `async_obj_wait()`.
 
-x = my_obj()
-async_x = async_obj(x) #create a virtual async version of the object x
-
-print("-------- Scenario 1: Check if the async function within the object is done and collect the result.")
-# Instead of calling x.some_func(2) which would block the main thread for 3 seconds,
-# Run the function via async_obj
-async_x.some_func(4) # Run the function here in
-print("The function has been called asynchronously.")
-# Do something else while waiting for the result
-while True:
-    print("Doing something else...")
-    sleep(1)
-    if async_x.async_obj_is_done():
-        result = async_x.async_obj_get_result() # can be called only once, then the result is cleared
-        print("Finished with the result: ", result)
-        break
-
-print("-------- Scenario 2: wait for async function within the object to be done and collect the result.")
-# Alternatively, use the wait function to block until the function is finished
-async_x.some_func(5)
-print("The function has been called asynchronously.")
-result = async_x.async_obj_wait()
-print("Finished with the result: ", result)
-
-print("-------- Scenario 3: wait for async function within the object to be done and catch the propagated exception.")
-#Errors are also raised whenever the result is requested either through async_obj_get_result() or async_obj_wait().
-async_x.some_func("a") #trigger an error with passing a string instead of an int
-print("The function has been called asynchronously.")
+```python
+print("Starting async function with an exception being expected...")
+async_dummy(None) # pass an invalid argument to raise an exception
+print("Started.")
+print("Blocking until the function finishes...")
 try:
-    result = async_x.async_obj_wait()
+    result = async_dummy.async_obj_wait()
 except Exception as e:
-    print("An error occurred: ", e)
+    print("Function finished with an exception: ", str(e))
+else:
+    print("Function finished without an exception, which is unexpected.")
+```
+---
+- Same functionalities are available for functions within class instances.
+```python
+class dummy_class:
+    x = None
 
+    def __init__(self):
+        self.x = 5
 
-print("-------- Scenario 4: Call a function directly (not within an object) and asynchronously with async_obj.")
-def another_func(val1, val2):
-    sleep(3) # Simulate some long function
-    print(val1*val2)
+    def dummy_func(self, y:int):
+        sleep(3)
+        return self.x * y
 
-async_func = async_obj(another_func) #create a virtual async version of the function
-async_func(3, 4)
-print("The function has been called asynchronously.")
-while True:
-    print("Doing something else...")
-    sleep(1)
-    if async_func.async_obj_is_done():
-        result = async_func.async_obj_get_result() # can be called only once, then the result is cleared
-        print("Finished with the result: ", result)
-        break
+dummy_instance = dummy_class()
+#define the async version of the dummy function within the dummy class instance
+async_dummy = async_obj(dummy_instance)
 
-print("-------- Scenario 5: Call print function asynchronously.")
-async_print = async_obj(print) #create a virtual async version of the function
-print("Print function has been called asynchronously.")
-async_print("Hello World")
-async_print.async_obj_wait() #wait for the print function to finish
-print("Finished")
-
-print("-------- Scenario 6: Call sleep function asynchronously.")
-async_sleep = async_obj(sleep) #create a virtual async version of the function
-async_sleep(3)
-print("Sleep function has been called asynchronously.")
-while True:
-    print("Doing something else...")
-    sleep(1)
-    if async_sleep.async_obj_is_done():
-        print("Finished")
-        break
+print("Starting async function...")
+async_dummy.dummy_func(4)  # Run dummy_func asynchronously
+print("Started.")
+print("Blocking until the function finishes...")
+result = async_dummy.async_obj_wait()
+print("Function finished.")
+print("Result: ", result, " Expected Result: 20")
 ```
 
 ## To Do
 1. Providing same concurrency functionalities for `getter`, `setter` and similar extension.
-2. Better support to autocompletion for IDE convenience.
-
+2. Improve autocompletion support for better IDE convenience.
